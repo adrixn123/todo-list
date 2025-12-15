@@ -11,15 +11,13 @@
   to = "/index.html"
   status = 200
 
-# 🔥 SOLUCIÓN: Permitir conexiones a tu backend en Render
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    # PERMITE CONEXIONES A RENDER:
-    Content-Security-Policy = "default-src 'self' https://*.netlify.app https://todo-list-7gyh.onrender.com; connect-src 'self' https://*.netlify.app https://todo-list-7gyh.onrender.com;"
+# ⚠️ SIN CSP (solo para pruebas)
+# [[headers]]
+#   for = "/*"
+#   [headers.values]
+#     X-Frame-Options = "DENY"
+#     X-Content-Type-Options = "nosniff"
+#     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [dev]
   command = "npm start"

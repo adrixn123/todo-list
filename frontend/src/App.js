@@ -12,7 +12,7 @@ import './App.css';
 const isDevelopment = process.env.NODE_ENV === 'development';
 const API_URL = isDevelopment 
   ? 'http://localhost:5000'  // Para desarrollo local
-  : process.env.REACT_APP_API_URL || 'https://todo-list-7gyh.onrender.com'; // CAMBIA ESTA URL
+  : process.env.REACT_APP_API_URL || 'https://todo-list-ggr1.onrender.com'; // CAMBIA ESTA URL
 
 console.log('🔧 Entorno:', process.env.NODE_ENV);
 console.log('🌐 API URL:', API_URL);
