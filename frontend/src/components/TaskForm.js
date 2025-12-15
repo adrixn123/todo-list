@@ -1,8 +1,7 @@
-// frontend/src/components/TaskForm.js
 import React, { useState } from 'react';
-import { FaPlus, FaSpinner } from 'react-icons/fa';
+import { FaPlus, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 
-function TaskForm({ onAddTask }) {
+function TaskForm({ onAddTask, disabled }) {
     const [title, setTitle] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -10,6 +9,11 @@ function TaskForm({ onAddTask }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
+        if (disabled) {
+            setError('Backend desconectado. No se pueden agregar tareas.');
+            return;
+        }
+
         if (!title.trim()) {
             setError('Por favor, escribe una tarea');
             return;
@@ -21,9 +25,8 @@ function TaskForm({ onAddTask }) {
         try {
             await onAddTask(title);
             setTitle('');
-            setError('');
         } catch (err) {
-            setError('Error al agregar tarea. Intenta de nuevo.');
+            setError(err.message || 'Error al agregar tarea');
             console.error('Error:', err);
         } finally {
             setLoading(false);
@@ -31,7 +34,7 @@ function TaskForm({ onAddTask }) {
     };
 
     const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && !loading) {
+        if (e.key === 'Enter' && !loading && !disabled) {
             handleSubmit(e);
         }
     };
@@ -47,36 +50,42 @@ function TaskForm({ onAddTask }) {
                         setError('');
                     }}
                     onKeyPress={handleKeyPress}
-                    placeholder="¿Qué necesitas hacer hoy?"
-                    className={`task-input ${error ? 'error' : ''}`}
-                    disabled={loading}
+                    placeholder={disabled ? "Backend desconectado..." : "¿Qué necesitas hacer hoy?"}
+                    className={`task-input ${error ? 'error' : ''} ${disabled ? 'disabled' : ''}`}
+                    disabled={loading || disabled}
                     maxLength={200}
                 />
                 
                 <button 
                     type="submit" 
-                    className="btn-add"
-                    disabled={loading || !title.trim()}
-                    title="Agregar tarea"
+                    className={`btn-add ${disabled ? 'disabled' : ''}`}
+                    disabled={loading || !title.trim() || disabled}
+                    title={disabled ? "Conecta el backend primero" : "Agregar tarea"}
                 >
-                    {loading ? (
+                    {disabled ? (
+                        <FaExclamationTriangle />
+                    ) : loading ? (
                         <FaSpinner className="spinner-icon" />
                     ) : (
                         <FaPlus />
                     )}
-                    <span>{loading ? 'Agregando...' : 'Agregar'}</span>
+                    <span>
+                        {disabled ? 'Desconectado' : 
+                         loading ? 'Agregando...' : 'Agregar'}
+                    </span>
                 </button>
             </div>
             
             {error && (
                 <div className="error-message">
-                    ⚠️ {error}
+                    {disabled ? <FaExclamationTriangle /> : '⚠️'} {error}
                 </div>
             )}
             
             <div className="form-info">
                 <small>
-                    {title.length}/200 caracteres • Presiona Enter para agregar
+                    {disabled ? '🔌 Conecta el backend para habilitar' : 
+                     `${title.length}/200 caracteres • Presiona Enter para agregar`}
                 </small>
             </div>
         </form>

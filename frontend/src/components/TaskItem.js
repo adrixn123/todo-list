@@ -1,190 +1,133 @@
-// frontend/src/components/TaskItem.js
-import React, { useState } from 'react';
-import { 
-    FaEdit, FaTrash, FaSave, FaTimes, 
-    FaCheck, FaClock, FaCalendarAlt 
-} from 'react-icons/fa';
+import React from 'react';
+import TaskItem from './TaskItem';
+import { FaClipboardList, FaCheckCircle, FaListAlt, FaPlug, FaCloud } from 'react-icons/fa';
 
-function TaskItem({ task, onDelete, onUpdate }) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedTitle, setEditedTitle] = useState(task.title);
-    const [isCompleted, setIsCompleted] = useState(task.completed);
-    const [loading, setLoading] = useState(false);
+function TaskList({ tasks, onDeleteTask, onUpdateTask, loading, error, backendConnected }) {
+    if (loading) {
+        return (
+            <div className="loading-container">
+                <div className="spinner-large"></div>
+                <p>Conectando con el backend...</p>
+                <small>Verificando conexión con Railway MySQL</small>
+            </div>
+        );
+    }
 
-    const handleEdit = () => {
-        setIsEditing(true);
-        setEditedTitle(task.title);
-    };
+    if (!backendConnected) {
+        return (
+            <div className="disconnected-state">
+                <div className="disconnected-icon">
+                    <FaPlug />
+                </div>
+                <h3>Backend desconectado</h3>
+                <p>No se puede conectar con el servidor backend.</p>
+                <p className="disconnected-help">
+                    Asegúrate de que tu backend esté desplegado en Railway o Render
+                    y que la URL esté configurada correctamente.
+                </p>
+                <div className="demo-mode">
+                    <h4><FaCloud /> Modo demostración</h4>
+                    <p>Puedes interactuar con la interfaz, pero los datos no se guardarán.</p>
+                </div>
+            </div>
+        );
+    }
 
-    const handleSave = async () => {
-        if (!editedTitle.trim()) {
-            alert('El título no puede estar vacío');
-            return;
-        }
+    if (error) {
+        return (
+            <div className="error-container">
+                <div className="error-icon">⚠️</div>
+                <h3>Error al cargar tareas</h3>
+                <p>{error}</p>
+                <button 
+                    onClick={() => window.location.reload()} 
+                    className="btn-retry"
+                >
+                    Reintentar conexión
+                </button>
+            </div>
+        );
+    }
 
-        setLoading(true);
-        try {
-            await onUpdate(task.id, { 
-                title: editedTitle.trim(),
-                completed: isCompleted
-            });
-            setIsEditing(false);
-        } catch (error) {
-            console.error('Error al actualizar:', error);
-            alert('Error al guardar cambios');
-        } finally {
-            setLoading(false);
-        }
-    };
+    if (tasks.length === 0) {
+        return (
+            <div className="empty-state">
+                <div className="empty-icon">
+                    <FaClipboardList />
+                </div>
+                <h3>¡No hay tareas pendientes!</h3>
+                <p>Agrega tu primera tarea usando el formulario de arriba.</p>
+                <small>Las tareas se guardan en MySQL en Railway y persisten después de reiniciar.</small>
+            </div>
+        );
+    }
 
-    const handleCancel = () => {
-        setEditedTitle(task.title);
-        setIsCompleted(task.completed);
-        setIsEditing(false);
-    };
-
-    const handleToggleComplete = async () => {
-        const newCompletedState = !isCompleted;
-        setIsCompleted(newCompletedState);
-        
-        try {
-            await onUpdate(task.id, { 
-                completed: newCompletedState 
-            });
-        } catch (error) {
-            console.error('Error al actualizar estado:', error);
-            setIsCompleted(!newCompletedState); // Revertir si hay error
-            alert('Error al actualizar tarea');
-        }
-    };
-
-    const handleDelete = async () => {
-        if (window.confirm(`¿Eliminar la tarea "${task.title}"?`)) {
-            try {
-                await onDelete(task.id);
-            } catch (error) {
-                console.error('Error al eliminar:', error);
-                alert('Error al eliminar tarea');
-            }
-        }
-    };
-
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffTime = Math.abs(now - date);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 0) {
-            return `Hoy a las ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-        } else if (diffDays === 1) {
-            return `Ayer a las ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-        } else {
-            return date.toLocaleDateString('es-ES', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-    };
+    // Separar tareas completadas y pendientes
+    const pendingTasks = tasks.filter(task => !task.completed);
+    const completedTasks = tasks.filter(task => task.completed);
 
     return (
-        <div className={`task-item ${isCompleted ? 'completed' : ''} ${isEditing ? 'editing' : ''}`}>
-            <div className="task-content">
-                {isEditing ? (
-                    <div className="edit-mode">
-                        <div className="edit-header">
-                            <input
-                                type="text"
-                                value={editedTitle}
-                                onChange={(e) => setEditedTitle(e.target.value)}
-                                className="edit-input"
-                                autoFocus
-                                maxLength={200}
+        <div className="task-list">
+            {pendingTasks.length > 0 && (
+                <div className="tasks-section">
+                    <h3 className="section-title">
+                        <FaListAlt /> Pendientes ({pendingTasks.length})
+                    </h3>
+                    <div className="tasks-grid">
+                        {pendingTasks.map(task => (
+                            <TaskItem
+                                key={task.id}
+                                task={task}
+                                onDelete={onDeleteTask}
+                                onUpdate={onUpdateTask}
+                                backendConnected={backendConnected}
                             />
-                            <small className="char-count">
-                                {editedTitle.length}/200
-                            </small>
-                        </div>
-                        
-                        <div className="edit-buttons">
-                            <button 
-                                onClick={handleSave} 
-                                className="btn-save"
-                                disabled={loading || !editedTitle.trim()}
-                            >
-                                <FaSave /> {loading ? 'Guardando...' : 'Guardar'}
-                            </button>
-                            <button 
-                                onClick={handleCancel} 
-                                className="btn-cancel"
-                                disabled={loading}
-                            >
-                                <FaTimes /> Cancelar
-                            </button>
-                        </div>
+                        ))}
                     </div>
-                ) : (
-                    <div className="view-mode">
-                        <div className="task-header">
-                            <button 
-                                className={`task-checkbox ${isCompleted ? 'checked' : ''}`}
-                                onClick={handleToggleComplete}
-                                title={isCompleted ? 'Marcar como pendiente' : 'Marcar como completada'}
-                            >
-                                {isCompleted ? <FaCheck /> : ''}
-                            </button>
-                            
-                            <div className="task-info">
-                                <h3 className="task-title">{task.title}</h3>
-                                <div className="task-meta">
-                                    <span className="task-date">
-                                        <FaCalendarAlt /> {formatDate(task.created_at)}
-                                    </span>
-                                    {task.updated_at !== task.created_at && (
-                                        <span className="task-updated">
-                                            <FaClock /> Editada: {formatDate(task.updated_at)}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="task-actions">
-                            <button 
-                                onClick={handleEdit} 
-                                className="btn-edit"
-                                title="Editar tarea"
-                            >
-                                <FaEdit /> Editar
-                            </button>
-                            <button 
-                                onClick={handleDelete} 
-                                className="btn-delete"
-                                title="Eliminar tarea"
-                            >
-                                <FaTrash /> Eliminar
-                            </button>
-                        </div>
+                </div>
+            )}
+
+            {completedTasks.length > 0 && (
+                <div className="tasks-section">
+                    <h3 className="section-title">
+                        <FaCheckCircle /> Completadas ({completedTasks.length})
+                    </h3>
+                    <div className="tasks-grid">
+                        {completedTasks.map(task => (
+                            <TaskItem
+                                key={task.id}
+                                task={task}
+                                onDelete={onDeleteTask}
+                                onUpdate={onUpdateTask}
+                                backendConnected={backendConnected}
+                            />
+                        ))}
                     </div>
-                )}
-            </div>
-            
-            <div className="task-status">
-                {isCompleted ? (
-                    <span className="status-badge completed-badge">
-                        <FaCheck /> Completada
+                </div>
+            )}
+
+            <div className="stats-summary">
+                <div className="stat-item">
+                    <span className="stat-label">Total:</span>
+                    <span className="stat-value">{tasks.length}</span>
+                </div>
+                <div className="stat-item">
+                    <span className="stat-label">Pendientes:</span>
+                    <span className="stat-value pending">{pendingTasks.length}</span>
+                </div>
+                <div className="stat-item">
+                    <span className="stat-label">Completadas:</span>
+                    <span className="stat-value completed">{completedTasks.length}</span>
+                </div>
+                <div className="stat-item">
+                    <span className="stat-label">Backend:</span>
+                    <span className="stat-value connected">
+                        {backendConnected ? '✅ Conectado' : '❌ Desconectado'}
                     </span>
-                ) : (
-                    <span className="status-badge pending-badge">
-                        <FaClock /> Pendiente
-                    </span>
-                )}
+                </div>
             </div>
         </div>
     );
 }
 
-export default TaskItem;
+export default TaskList;
