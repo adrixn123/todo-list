@@ -32,28 +32,46 @@ app.get("/tasks", async (req, res) => {
   }
 });
 
-// Crear nueva tarea
+// Crear nueva tarea - LINEA 35
 app.post("/tasks", async (req, res) => {
   const { title } = req.body;
   if (!title) return res.status(400).json({ error: "El título es obligatorio" });
   try {
     const result = await db.query("INSERT INTO tasks (title) VALUES (?)", [title]);
-    res.status(201).json({ id: result.insertId, title, completed: 0 });
+    // CORREGIR: Devolver el objeto completo de la tarea creada
+    const [newTask] = await db.query("SELECT * FROM tasks WHERE id = ?", [result.insertId]);
+    res.status(201).json(newTask); // ← Esto es lo que espera tu frontend
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Editar tarea
+// Editar tarea - LINEA 48
 app.put("/tasks/:id", async (req, res) => {
   const { id } = req.params;
   const { title, completed } = req.body;
   try {
-    const result = await db.query(
+    await db.query(
       "UPDATE tasks SET title = ?, completed = ? WHERE id = ?",
       [title, completed ? 1 : 0, id]
     );
-    res.json({ updated: result.affectedRows });
+    // CORREGIR: Devolver la tarea actualizada
+    const [updatedTask] = await db.query("SELECT * FROM tasks WHERE id = ?", [id]);
+    res.json(updatedTask); // ← Esto es lo que espera tu frontend
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Eliminar tarea - LINEA 61 (Opcional, pero recomendado)
+app.delete("/tasks/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.query("DELETE FROM tasks WHERE id = ?", [id]);
+    res.json({ 
+      message: "Tarea eliminada correctamente",
+      deleted: result.affectedRows 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
