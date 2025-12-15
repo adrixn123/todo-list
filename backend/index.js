@@ -9,16 +9,15 @@ const PORT = process.env.PORT || 5000;
 // Parsear JSON
 app.use(express.json());
 
-// Configurar CORS para Netlify y localhost
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://mellow-gecko-f0757f.netlify.app' // Cambia este dominio por el de tu Netlify
-];
-
+// Configurar CORS
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true); // Permite Postman o curl
-    if (allowedOrigins.includes(origin)) {
+    // Permitir localhost y cualquier subdominio de Netlify
+    if (
+      origin.startsWith("http://localhost") || 
+      origin.endsWith(".netlify.app")
+    ) {
       callback(null, true);
     } else {
       callback(new Error('No permitido por CORS'));
@@ -88,7 +87,7 @@ app.delete("/tasks/:id", async (req, res) => {
 // Ruta de salud (health check)
 app.get("/health", async (req, res) => {
   try {
-    await db.query("SELECT 1 as status"); // Verifica conexión
+    await db.query("SELECT 1 as status");
     res.json({
       status: "healthy",
       database: "connected",
